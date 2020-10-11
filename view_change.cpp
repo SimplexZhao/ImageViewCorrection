@@ -438,7 +438,7 @@ bool window_affine2(BYTE * base, int col_b, int row_b, BYTE *& window, int win_w
 // Project a point from a plane to target plane via central projection
 //
 // only used in window_semi_affine to simplify the code
-void Proj2Plane(double vecz[3], double x_src, double y_src, double z_src, double& x, double& y)
+inline void Proj2Plane(double vecz[3], double x_src, double y_src, double z_src, double& x, double& y)
 {
 	double ratio_z = z_src / (z_src-vecz[2]);
 	x = x_src - (x_src-vecz[0])*ratio_z;
@@ -452,7 +452,7 @@ void Proj2Plane(double vecz[3], double x_src, double y_src, double z_src, double
 // @param src_pt 3D point in target space coordinate
 // @param x,y result coordinates
 // @return none
-void Proj2Plane(double vecz[3], double src_pt[3], double& x, double& y)
+inline void Proj2Plane(double vecz[3], double src_pt[3], double& x, double& y)
 {
 	Proj2Plane(vecz, src_pt[0], src_pt[1], src_pt[2], x, y);
 	return;
@@ -465,7 +465,7 @@ void Proj2Plane(double vecz[3], double src_pt[3], double& x, double& y)
 // @param vecz1,vecz2 Length is required to be f, so f is needed before calling this function **to compute vecz** 
 // @param x,y result point location **still in 'image center ORIGIN' coordinate**
 // @return void
-void GetFeaturePos(int f_x, int f_y, double R_1[9], double vecz1[3], double R_2[9], double vecz2[3], double& x, double &y)
+void GetFeaturePos(double f_x, double f_y, double R_1[9], double R_2[9], double vecz2[3], double vecz1[3], double& x, double &y)
 {
 	double tmp_x = 0;
 	double tmp_y = 0;
@@ -476,17 +476,14 @@ void GetFeaturePos(int f_x, int f_y, double R_1[9], double vecz1[3], double R_2[
 	tmp_x = tmp_out[0]; tmp_y = tmp_out[1]; tmp_z = tmp_out[2];
 
 	// Projection to std_pose plane
-	Proj2Plane(vecz1, tmp_out, tmp_x, tmp_y);
+	Proj2Plane(vecz2, tmp_out, tmp_x, tmp_y);
 	// Projection to std_pose plane
 
 	tmp_pt[0] = tmp_x;	tmp_pt[1] = tmp_y; tmp_pt[2] = 0;
 	MatrixMulti(R_1, tmp_pt, tmp_out, 3, 1, 3);
 	// Projection to base_pose plane
-	Proj2Plane(vecz2, tmp_out, x, y);
+	Proj2Plane(vecz1, tmp_out, x, y);
 	// Projection to base_pose plane
-/*To be deleted below:*/
-	// tmp_x = f_x + tmp_x;
-	// tmp_y = f_y - tmp_y;
 	return;
 }
 
@@ -494,11 +491,18 @@ bool window_semi_affine(BYTE* base, int col_b, int row_b, BYTE*& window, int win
 	int feature_x, int feature_y, double R_1[9], double R_2[9], int rgb_flag, int f, double lambda)
 {
 	// unit vector of z_{match} axis in base coordinate 
-	double vecz[3];		double vecz2[3];
-	vecz[0]=R_2[2]*f;	vecz2[0]=0;//R_1[6]*f;
-	vecz[1]=R_2[5]*f;	vecz2[1]=0;//R_1[7]*f;
-	vecz[2]=R_2[8]*f;	vecz2[2]=f;//R_1[8]*f;
+	double vecz2[3];		double vecz1[3];
+	vecz2[0]=R_2[2]*f;	vecz1[0]=0;//R_1[6]*f;
+	vecz2[1]=R_2[5]*f;	vecz1[1]=0;//R_1[7]*f;
+	vecz2[2]=R_2[8]*f;	vecz1[2]=f;//R_1[8]*f;
 	
+	double R_1T[9], R_2T[9];	double veczT[3], veczT2[3];
+	Transpose(R_1, R_1T, 3, 3);
+	Transpose(R_2, R_2T, 3, 3);
+	veczT[0] = R_1T[2] * f;	veczT2[0] = 0;//R_2T[6]*f;
+	veczT[1] = R_1T[5] * f;	veczT2[1] = 0;//R_2T[7]*f;
+	veczT[2] = R_1T[8] * f;	veczT2[2] = f;//R_2T[8]*f;
+
 	// compute view-changed window
 	if (rgb_flag == 1)
 		window = new BYTE[3 * win_w*win_h];// mode:RGB
@@ -506,21 +510,28 @@ bool window_semi_affine(BYTE* base, int col_b, int row_b, BYTE*& window, int win
 		window = new BYTE[win_w*win_h];// mode:Intensity
 	int half_win_w = win_w / 2;
 	int half_win_h = win_h / 2;
-	int tag_y = half_win_h;
 	int pos_res = 0;
 
-	// TODO: Activate above two lines after GetFeaturePos passed test.
-	//double center_x, center_y;
-	//GetFeaturePos(feature_x, feature_y, R_1, vecz, R_2, vecz2, center_x, center_y);
+	double center_x, center_y;
+	GetFeaturePos(feature_x-col_b/2, row_b/2-feature_y, R_2T, R_1T, veczT, veczT2, center_x, center_y);
+	// Sanity Check for GetFeaturePos parameter passing
+		//for(int i=0;i<4;++i)
+		//{
+		//	double tmpxx,tmpyy;
+		//	GetFeaturePos(i*col_b/4, i*row_b/4, R_2T, R_1T, veczT, veczT2, center_x, center_y);// point from base to match
+		//	GetFeaturePos(center_x, center_y, R_1, R_2, vecz2, vecz1, tmpxx, tmpyy);// point from match to base
+		//	if(int(tmpxx+0.5)==i*col_b/4&&int(tmpyy+0.5)==i*row_b/4)printf("Sanity Check Passed\n");
+		//}
 
+	double tag_y = center_y+half_win_h;
 	for (int j = 0; j < win_h; ++j, --tag_y)
 	{
-		int tag_x = -half_win_w;
+		double tag_x = center_x-half_win_w;
 		for (int i = 0; i < win_w; ++i, ++tag_x)
 		{
 			double tmp_x = 0;
 			double tmp_y = 0;
-			GetFeaturePos(tag_x, tag_y, R_1, vecz, R_2, vecz2, tmp_x, tmp_y);
+			GetFeaturePos(tag_x, tag_y, R_1, R_2, vecz2, vecz1, tmp_x, tmp_y);
 			tmp_x = col_b/2 + tmp_x;
 			tmp_y = row_b/2 - tmp_y;
 			if (rgb_flag == 1)

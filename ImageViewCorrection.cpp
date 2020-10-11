@@ -28,7 +28,7 @@ int main()
 	int col_b = src_img.cols;
 	int row_b = src_img.rows;
 	int col_r=col_b, row_r=row_b;
-	//col_r = row_r = 11;
+	col_r = row_r = 11;
 	pose base_pose; base_pose.phi = -0.772915; base_pose.omega = 0.169054; base_pose.kappa = 1.399974;
 	//pose base_pose; base_pose.phi = 0; base_pose.omega = 0; base_pose.kappa = 1.4134881456;
 	pose std_pose;//0,0,0
@@ -50,7 +50,7 @@ int main()
 
 		//ChangeView(src_img.data, col_b, row_b, data, col_r, row_r, base_pose, match_pose, 0);
 		//ChangeViewAffine2(src_img.data, col_b, row_b, data, col_r, row_r, bpose, mpose);
-	window_semi_affine(src_img.data, col_b, row_b, data, col_r, row_r, col_b/2, row_b/2, R_bT, R_m, 0);
+	window_semi_affine(src_img.data, col_b, row_b, data, col_r, row_r, 1998, 1887, R_bT, R_m, 0);
 	Mat res_img(Size(col_r, row_r), CV_8UC1);
 	memcpy(res_img.data, data, sizeof(BYTE)*col_r*row_r);
 	delete[] data;
