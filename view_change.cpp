@@ -458,6 +458,38 @@ void Proj2Plane(double vecz[3], double src_pt[3], double& x, double& y)
 	return;
 }
 
+// Get point location in target pose using R_1,R_2,vecz1,vecz2
+//
+// @param f_x,f_y Point coordinates in 'image center ORIGIN' coordinate, NOT 'left-top ORIGIN' TYPE
+// @param R_1,R_2
+// @param vecz1,vecz2 Length is required to be f, so f is needed before calling this function **to compute vecz** 
+// @param x,y result point location **still in 'image center ORIGIN' coordinate**
+// @return void
+void GetFeaturePos(int f_x, int f_y, double R_1[9], double vecz1[3], double R_2[9], double vecz2[3], double& x, double &y)
+{
+	double tmp_x = 0;
+	double tmp_y = 0;
+	double tmp_z;
+	double tmp_pt[3] = { f_x, f_y, 0.0 };
+	double tmp_out[3];
+	MatrixMulti(R_2, tmp_pt, tmp_out, 3, 1, 3);
+	tmp_x = tmp_out[0]; tmp_y = tmp_out[1]; tmp_z = tmp_out[2];
+
+	// Projection to std_pose plane
+	Proj2Plane(vecz1, tmp_out, tmp_x, tmp_y);
+	// Projection to std_pose plane
+
+	tmp_pt[0] = tmp_x;	tmp_pt[1] = tmp_y; tmp_pt[2] = 0;
+	MatrixMulti(R_1, tmp_pt, tmp_out, 3, 1, 3);
+	// Projection to base_pose plane
+	Proj2Plane(vecz2, tmp_out, x, y);
+	// Projection to base_pose plane
+/*To be deleted below:*/
+	// tmp_x = f_x + tmp_x;
+	// tmp_y = f_y - tmp_y;
+	return;
+}
+
 bool window_semi_affine(BYTE* base, int col_b, int row_b, BYTE*& window, int win_w, int win_h,
 	int feature_x, int feature_y, double R_1[9], double R_2[9], int rgb_flag, int f, double lambda)
 {
@@ -476,6 +508,11 @@ bool window_semi_affine(BYTE* base, int col_b, int row_b, BYTE*& window, int win
 	int half_win_h = win_h / 2;
 	int tag_y = half_win_h;
 	int pos_res = 0;
+
+	// TODO: Activate above two lines after GetFeaturePos passed test.
+	//double center_x, center_y;
+	//GetFeaturePos(feature_x, feature_y, R_1, vecz, R_2, vecz2, center_x, center_y);
+
 	for (int j = 0; j < win_h; ++j, --tag_y)
 	{
 		int tag_x = -half_win_w;
@@ -483,23 +520,9 @@ bool window_semi_affine(BYTE* base, int col_b, int row_b, BYTE*& window, int win
 		{
 			double tmp_x = 0;
 			double tmp_y = 0;
-			double tmp_z;
-			double tmp_pt[3] = { tag_x, tag_y, 0.0 };
-			double tmp_out[3];
-			MatrixMulti(R_2, tmp_pt, tmp_out, 3, 1, 3);
-			tmp_x = tmp_out[0]; tmp_y = tmp_out[1]; tmp_z = tmp_out[2];
-
-			// Projection to std_pose plane
-			Proj2Plane(vecz, tmp_out, tmp_x, tmp_y);
-			// Projection to std_pose plane
-
-			tmp_pt[0] = tmp_x;	tmp_pt[1] = tmp_y; tmp_pt[2] = 0;
-			MatrixMulti(R_1, tmp_pt, tmp_out, 3, 1, 3);
-			// Projection to base_pose plane
-			Proj2Plane(vecz2, tmp_out, tmp_x, tmp_y);
-			// Projection to base_pose plane
-			tmp_x = feature_x + tmp_x;
-			tmp_y = feature_y - tmp_y;
+			GetFeaturePos(tag_x, tag_y, R_1, vecz, R_2, vecz2, tmp_x, tmp_y);
+			tmp_x = col_b/2 + tmp_x;
+			tmp_y = row_b/2 - tmp_y;
 			if (rgb_flag == 1)
 			{
 				int pos_base = 3 * (tmp_x + tmp_y * col_b);
