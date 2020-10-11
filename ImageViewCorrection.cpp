@@ -50,7 +50,7 @@ int main()
 
 		//ChangeView(src_img.data, col_b, row_b, data, col_r, row_r, base_pose, match_pose, 0);
 		//ChangeViewAffine2(src_img.data, col_b, row_b, data, col_r, row_r, bpose, mpose);
-	window_semi_affine(src_img.data, col_b, row_b, data, col_r, row_r, 1998, 1887, R_bT, R_m, 0);
+	window_semi_homography(src_img.data, col_b, row_b, data, col_r, row_r, 1998, 1887, R_bT, R_m, 0);
 	Mat res_img(Size(col_r, row_r), CV_8UC1);
 	memcpy(res_img.data, data, sizeof(BYTE)*col_r*row_r);
 	delete[] data;

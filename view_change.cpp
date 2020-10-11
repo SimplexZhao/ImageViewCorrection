@@ -487,7 +487,7 @@ void GetFeaturePos(double f_x, double f_y, double R_1[9], double R_2[9], double 
 	return;
 }
 
-bool window_semi_affine(BYTE* base, int col_b, int row_b, BYTE*& window, int win_w, int win_h,
+bool window_semi_homography(BYTE* base, int col_b, int row_b, BYTE*& window, int win_w, int win_h,
 	int feature_x, int feature_y, double R_1[9], double R_2[9], int rgb_flag, int f, double lambda)
 {
 	// unit vector of z_{match} axis in base coordinate 

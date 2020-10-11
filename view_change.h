@@ -71,7 +71,7 @@ bool window_affine2(BYTE* base, int col_b, int row_b, BYTE*& window, int win_w, 
 	int feature_x, int feature_y, double R_1[9], double R_2[9], int rgb_flag, double lambda = 1.0);
 
 
-// Semi-affine transformation for a window. 
+// Semi-Homography transformation for a window. Not Computing a Homography matrix but using two isolated matrix 
 //
 // Generate a small window(like 11*11) via `Projecting base image on std_pose plane, and viewing std_pose plane at match_pose`.
 // And it seems only useful when object photographed is almost flat like Ground, e.g. Youyi Square
@@ -83,6 +83,6 @@ bool window_affine2(BYTE* base, int col_b, int row_b, BYTE*& window, int win_w, 
 // @param R_2 rotation matrix giving description of relative pose between std and match image
 // @param lambda scale paramter of the small window, unused until now.
 // @return true if excuted successfully
-bool window_semi_affine(BYTE* base, int col_b, int row_b, BYTE*& window, int win_w, int win_h,
+bool window_semi_homography(BYTE* base, int col_b, int row_b, BYTE*& window, int win_w, int win_h,
 	int feature_x, int feature_y, double R_1[9], double R_2[9], int rgb_flag, int f=3600, double lambda = 1.0);
 
